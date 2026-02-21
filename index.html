@@ -143,12 +143,6 @@
         .copy-btn { margin-top: 10px; font-size: 12px; background: none; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; width: 100%; }
         .copy-btn:hover { background: #fff; }
 
-        /* --- MOBILE OVERLAY (FIXED: BLUR REMOVED) --- */
-        #mobile-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); z-index: 90; /* No backdrop-filter */
-        }
-
         /* --- RESPONSIVE CSS --- */
         @media (max-width: 1024px) {
             #app-container { display: block; padding-top: var(--header-height); height: auto; overflow: visible; }
@@ -188,8 +182,6 @@
         <div style="font-weight:700;">CIA Dashboard</div>
         <div style="width: 24px;"></div>
     </div>
-
-    <div id="mobile-overlay" onclick="toggleMenu()"></div>
 
     <div id="landing-page">
         <div class="landing-header">
@@ -407,10 +399,9 @@
 
         function toggleMenu(force) {
             const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobile-overlay');
             const isOpen = sidebar.classList.contains('open');
-            if (force === false || isOpen) { sidebar.classList.remove('open'); overlay.style.display = 'none'; } 
-            else { sidebar.classList.add('open'); overlay.style.display = 'block'; }
+            if (force === false || isOpen) { sidebar.classList.remove('open'); } 
+            else { sidebar.classList.add('open'); }
         }
 
         function renderSidebar() {
