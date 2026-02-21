@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CIA Eval System | Fixed</title>
+    <style>
+        :root {
+            --bg: #f8fafc;           
+            --surface: #ffffff;      
+            --surface-hover: #f1f5f9;
+            --border: #e2e8f0;       
+            --text-main: #0f172a;    
+            --text-sub: #64748b;     
+            --primary: #2563eb;      
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --header-height: 60px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* FIX 1: Allow Body to Scroll naturally on mobile */
+        body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+        /* --- TYPOGRAPHY --- */
+        h1 { font-size: 56px; letter-spacing: -1.5px; line-height: 1.1; font-weight: 800; color: var(--text-main); }
+        h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
+        h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-sub); font-weight: 600; margin-bottom: 6px; display: block; }
+        p { line-height: 1.6; color: var(--text-sub); font-size: 15px; }
+
+        /* --- LANDING PAGE --- */
+        #landing-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--surface); z-index: 200;
+            overflow-y: auto; scroll-behavior: smooth;
+            transition: transform 0.5s ease;
+        }
+
+        .landing-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 40px; border-bottom: 1px solid var(--border); }
+
+        .landing-hero {
+            min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+            background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #ffffff 70%);
+            padding: 40px 20px;
+        }
+        
+        .hero-images { display: flex; gap: 20px; margin-top: 40px; margin-bottom: 40px; }
+        .hero-img { 
+            width: 160px; height: 160px; border-radius: 20px; object-fit: cover; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
+            transition: transform 0.3s ease;
+        }
+        .hero-img:nth-child(2) { transform: translateY(-20px); }
+
+        .start-btn {
+            margin-top: 20px; background: var(--text-main); color: #fff; border: none; padding: 18px 56px; border-radius: 99px;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .landing-section { padding: 80px 40px; max-width: 1200px; margin: 0 auto; border-top: 1px solid var(--border); }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-top: 30px; }
+        .info-card { background: var(--bg); padding: 32px; border-radius: 16px; border: 1px solid var(--border); }
+        .tag { display: inline-block; font-size: 10px; background: #dbeafe; color: var(--primary); padding: 4px 10px; border-radius: 6px; margin-bottom: 12px; font-weight: 600; }
+
+        /* --- MOBILE HEADER (Visible only on small screens) --- */
+        #mobile-header {
+            display: none; height: var(--header-height); background: var(--surface); border-bottom: 1px solid var(--border);
+            align-items: center; padding: 0 20px; justify-content: space-between; position: fixed; top: 0; left: 0; width: 100%; z-index: 50;
+        }
+        .burger-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text-main); padding: 5px; }
+
+        /* --- APP LAYOUT --- */
+        #app-container {
+            display: grid; grid-template-columns: 260px 1fr 340px; height: 100vh;
+            opacity: 0; transform: scale(0.98); transition: opacity 0.5s ease;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar { 
+            background: var(--surface); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; padding: 24px 16px; gap: 8px; overflow-y: auto; 
+            z-index: 40; /* Lower than header */
+        }
+        
+        .student-badge { padding: 16px; background: var(--bg); border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        .student-name { font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .student-uni { font-size: 12px; color: var(--text-sub); }
+
+        .nav-item {
+            padding: 12px 16px; border-radius: 10px; cursor: pointer;
+            font-size: 14px; color: var(--text-sub); font-weight: 500; transition: all 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav-item:hover, .nav-item.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
+        .nav-item.special { background: var(--text-main); color: #fff; margin-top: 20px; }
+        .back-btn { margin-top: auto; padding: 12px 16px; cursor: pointer; color: var(--text-sub); font-size: 14px; display: flex; align-items: center; gap: 8px; }
+
+        /* --- STAGE --- */
+        .stage { padding: 40px; overflow-y: auto; background: var(--bg); padding-bottom: 100px; }
+        
+        .tool-card { margin-bottom: 32px; }
+        
+        #tool-title-input {
+            background: transparent; border: none; color: var(--text-main); font-size: 48px; font-weight: 800;
+            letter-spacing: -1.5px; width: 100%; outline: none; margin-bottom: 4px; padding: 0;
+        }
+        #cat-badge { display: inline-block; padding: 6px 14px; background: #e2e8f0; border-radius: 99px; font-size: 12px; color: var(--text-main); font-weight: 600; margin-bottom: 12px; }
+
+        .criteria-section { background: var(--surface); padding: 32px; border-radius: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .criteria-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .section-title { font-size: 16px; font-weight: 700; color: var(--primary); }
+        
+        .criteria-row { margin-bottom: 32px; }
+        .slider-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; font-size: 15px; }
+        
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; padding: 10px 0; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%;
+            background: var(--surface); border: 2px solid var(--primary);
+            margin-top: -10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* --- RIGHT STATS --- */
+        .stats { background: var(--surface); border-left: 1px solid var(--border); padding: 32px; display: flex; flex-direction: column; }
+        .score-card { text-align: center; margin-bottom: 40px; background: #eff6ff; padding: 24px; border-radius: 20px; color: var(--primary); }
+        .score-big { font-size: 72px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+        .chart-container { position: relative; margin-top: auto; padding: 20px; }
+        #verdict { margin-top: 20px; text-align: center; font-weight: 700; font-size: 18px; padding: 16px; border-radius: 12px; background: var(--bg); color: var(--text-sub); }
+
+        /* --- MOBILE OVERLAY (FIXED Z-INDEX) --- */
+        #mobile-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 90; backdrop-filter: blur(4px);
+        }
+
+        /* --- RESPONSIVE CSS --- */
+        @media (max-width: 1024px) {
+            /* Fix 1: Change Grid to Block for scrolling */
+            #app-container {
+                display: block; 
+                padding-top: var(--header-height); 
+                height: auto; 
+                overflow: visible;
+            }
+
+            #mobile-header { display: flex; }
+
+            /* Sidebar hidden off-screen */
+            .sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0; width: 280px;
+                transform: translateX(-100%); transition: transform 0.3s ease;
+                z-index: 100; box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            .stage { padding: 20px; overflow: visible; height: auto; }
+            #tool-title-input { font-size: 32px; }
+            
+            /* Move stats to bottom of page flow */
+            .stats {
+                border-left: none; border-top: 1px solid var(--border);
+                padding: 32px 20px; height: auto;
+            }
+
+            .landing-header { padding: 20px; }
+            .landing-section { padding: 40px 20px; }
+            h1 { font-size: 40px; }
+            .hero-images { transform: scale(0.8); gap: 10px; }
+            .hero-img { width: 100px; height: 100px; }
+        }
+
+        /* --- MODAL --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); z-index: 200;
+            display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s;
+        }
+        .modal.visible { display: flex; opacity: 1; }
+        .modal-card { width: 90%; max-width: 500px; background: var(--surface); border-radius: 24px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; max-height: 80vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub); }
+
+        select { width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; color: var(--text-main); padding: 14px; border-radius: 10px; font-size: 16px; margin-bottom: 16px; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="mobile-header">
+        <button class="burger-btn" onclick="toggleMenu()">☰</button>
+        <div style="font-weight:700;">CIA Dashboard</div>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div id="mobile-overlay" onclick="toggleMenu()"></div>
+
+    <div id="landing-page">
+        <div class="landing-header">
+            <div>
+                <div class="label" style="margin:0;">Student</div>
+                <div style="font-weight:700;">Ndumiso Mangena</div>
+            </div>
+            <div style="text-align:right;">
+                <div class="label" style="margin:0;">Institution</div>
+                <div style="font-weight:700;">UP</div>
+            </div>
+        </div>
+
+        <div class="landing-hero">
+            <div class="label" style="color: var(--primary); margin-bottom: 16px; font-size: 14px;">ICT 310 • Task 2</div>
+            <h1>The CIA<br>Framework</h1>
+            <p style="margin-top: 24px; max-width: 600px; font-size: 16px;">
+                Professional evaluation of Educational Technology.
+            </p>
+            
+            <button class="start-btn" onclick="enterApp()">Launch Dashboard</button>
+
+            <div class="hero-images">
+                <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=300&q=80" class="hero-img">
+                <img src="https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=300&q=80" class="hero-img">
+            </div>
+        </div>
+
+        <div class="landing-section">
+            <div class="label">Instructions</div>
+            <h2>How to use</h2>
+            <div class="grid-3">
+                <div class="info-card"><h3>1. Select</h3><p>Choose a tool from the menu to see its score.</p></div>
+                <div class="info-card"><h3>2. Evaluate</h3><p>Adjust sliders to match your context.</p></div>
+                <div class="info-card"><h3>3. Recommend</h3><p>Use Smart Recs to find the best fit.</p></div>
+            </div>
+        </div>
+
+        <div class="landing-section">
+            <div class="label">Glossary</div>
+            <h2>Key Terms</h2>
+            <div class="grid-3">
+                <div class="info-card"><span class="tag">CONTENT</span><h3>Cognitive Suitability</h3><p>Matches learners’ developmental stage?</p></div>
+                <div class="info-card"><span class="tag">INTERACTION</span><h3>Interactive Richness</h3><p>Quizzes, sims, chat vs static text?</p></div>
+                <div class="info-card"><span class="tag">ACCESS</span><h3>Inclusive Design</h3><p>Captions, audio, screen reader support?</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container">
+        
+        <nav class="sidebar" id="sidebar">
+            <div class="student-badge">
+                <div class="student-name">Ndumiso Mangena</div>
+                <div class="student-uni">University of Pretoria</div>
+            </div>
+
+            <div class="label" style="padding-left: 16px;">Tool Database</div>
+            <div id="tool-list"></div>
+            
+            <div class="nav-item special" onclick="openRecommender()"><span>✨ Smart Recs</span></div>
+            <div class="nav-item" style="margin-top: 8px; border: 1px dashed var(--border); justify-content: center;" onclick="createCustom()"><span>+ New Eval</span></div>
+
+            <div class="back-btn" onclick="exitApp()"><span>← Back to Home</span></div>
+        </nav>
+
+        <main class="stage">
+            <div class="tool-card">
+                <span id="cat-badge">Category</span>
+                <input type="text" id="tool-title-input" value="Select Tool" readonly>
+                <p id="tool-desc-text">Description goes here...</p>
+            </div>
+
+            <div class="criteria-section">
+                <div class="criteria-header"><div class="section-title">📘 Content</div><div class="label">25 Pts</div></div>
+                <div id="content-sliders"></div>
+            </div>
+
+            <div class="criteria-section">
+                <div class="criteria-header"><div class="section-title">⚡ Interaction</div><div class="label">25 Pts</div></div>
+                <div id="interaction-sliders"></div>
+            </div>
+
+            <div class="criteria-section">
+                <div class="criteria-header"><div class="section-title">🔓 Access</div><div class="label">25 Pts</div></div>
+                <div id="access-sliders"></div>
+            </div>
+        </main>
+
+        <aside class="stats">
+            <div class="score-card">
+                <div class="label" style="color: var(--primary); opacity: 0.7;">TOTAL SCORE</div>
+                <div class="score-big" id="total-score">0</div>
+                <div style="font-weight: 600;">/ 75</div>
+            </div>
+            <div class="chart-container">
+                <svg viewBox="0 0 200 200" width="100%" height="100%">
+                    <polygon points="100,20 177,150 23,150" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" />
+                    <line x1="100" y1="100" x2="100" y2="20" stroke="#e2e8f0" stroke-dasharray="4" />
+                    <line x1="100" y1="100" x2="177" y2="150" stroke="#e2e8f0" stroke-dasharray="4" />
+                    <line x1="100" y1="100" x2="23" y2="150" stroke="#e2e8f0" stroke-dasharray="4" />
+                    <polygon id="radar-poly" points="100,100 100,100 100,100" fill="rgba(37, 99, 235, 0.2)" stroke="var(--primary)" stroke-width="3" style="transition: all 0.5s var(--ease);" />
+                    <text x="100" y="15" fill="#64748b" font-size="9" text-anchor="middle" font-weight="700">CONTENT</text>
+                    <text x="185" y="160" fill="#64748b" font-size="9" text-anchor="middle" font-weight="700">INTERACTION</text>
+                    <text x="15" y="160" fill="#64748b" font-size="9" text-anchor="middle" font-weight="700">ACCESS</text>
+                </svg>
+            </div>
+            <div id="verdict">VERDICT</div>
+        </aside>
+    </div>
+
+    <div class="modal" id="rec-modal">
+        <div class="modal-card">
+            <button class="close-btn" onclick="closeRecommender()">×</button>
+            <div class="label" style="color:var(--primary)">AI Assistant</div>
+            <h2 style="margin-bottom: 20px;">Find the perfect tool</h2>
+            
+            <label class="label">Subject Area</label>
+            <select id="rec-subject">
+                <option value="math">Mathematics / STEM</option>
+                <option value="admin">Administration / LMS</option>
+                <option value="general">General / Creative</option>
+            </select>
+            <label class="label">Primary Constraint</label>
+            <select id="rec-constraint">
+                <option value="access">Low Data / Offline Access</option>
+                <option value="interaction">Student Engagement</option>
+                <option value="content">Content Depth</option>
+            </select>
+            <button class="start-btn" style="width: 100%; margin-top: 10px;" onclick="runRecommendation()">Generate</button>
+            <div id="rec-result" style="display:none; margin-top: 24px; padding: 20px; background: #eff6ff; border-radius: 12px; border: 1px solid #dbeafe;">
+                <div style="font-weight: 700; color: var(--primary); font-size: 18px;" id="rec-name">Tool Name</div>
+                <p id="rec-text" style="font-size: 14px; margin-top: 8px; color: var(--text-main);">Reasoning...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG & DATA ---
+        const criteriaConfig = {
+            c: [
+                {l:"Curriculum Alignment", d:"Matches grade-level standards?"},
+                {l:"Multimodality", d:"Uses video, audio, sims?"},
+                {l:"Credibility", d:"Is info reliable and current?"},
+                {l:"Cognitive Suitability", d:"Matches learner development stage?"},
+                {l:"Learner Appeal", d:"Is it visually engaging?"}
+            ],
+            i: [
+                {l:"Active Engagement", d:"Do learners solve/create vs watch?"},
+                {l:"Automated Feedback", d:"Instant correction of mistakes?"},
+                {l:"Communication", d:"Supports teacher-student chat?"},
+                {l:"Collaboration", d:"Can learners work together?"},
+                {l:"Interactive Richness", d:"Variety of features (quizzes, etc)?"}
+            ],
+            a: [
+                {l:"Data Cost", d:"Zero-rated or offline capable?"},
+                {l:"Device Inclusivity", d:"Works on low-end phones?"},
+                {l:"Multi-Device", d:"Works on tablet/desktop too?"},
+                {l:"Inclusive Design", d:"Captions, screen readers?"},
+                {l:"Onboarding", d:"Easy to learn for new users?"}
+            ]
+        };
+
+        const tools = [
+            { id: 'siyavula', name: 'Siyavula', type: 'Adaptive STEM', desc: 'Adaptive practice for Math & Science. Zero-rated.', c:[5,3,5,5,3], i:[4,5,2,2,4], a:[5,5,4,3,4], tags:['math'] },
+            { id: 'photomath', name: 'Photomath', type: 'AI Solver', desc: 'Scans handwriting to solve equations.', c:[3,1,5,4,5], i:[5,5,1,1,3], a:[5,5,2,2,5], tags:['math'] },
+            { id: 'moodle', name: 'Moodle', type: 'Open LMS', desc: 'Highly customizable open-source platform.', c:[3,3,5,3,3], i:[3,2,5,5,5], a:[4,4,5,4,2], tags:['admin'] },
+            { id: 'blackboard', name: 'Blackboard', type: 'Enterprise LMS', desc: 'Standard university LMS.', c:[4,2,5,3,2], i:[2,3,5,4,3], a:[2,3,5,3,3], tags:['admin'] },
+            { id: 'kahoot', name: 'Kahoot!', type: 'Gamification', desc: 'Game-based learning platform.', c:[2,3,4,5,5], i:[5,5,3,3,5], a:[3,4,5,3,5], tags:['general'] },
+            { id: 'gemini', name: 'Gemini', type: 'Gen AI', desc: 'AI model for lesson plans/tutoring.', c:[5,5,4,4,4], i:[5,5,4,2,4], a:[2,3,5,3,4], tags:['general'] }
+        ];
+
+        let activeTool = tools[0];
+
+        // --- RENDER SLIDERS ---
+        function renderSliders(cat, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            criteriaConfig[cat].forEach((item, index) => {
+                const idx = index + 1;
+                const html = `
+                <div class="criteria-row">
+                    <div class="slider-top"><span>${item.l}</span><span id="val-${cat}${idx}" style="color:var(--primary)">0/5</span></div>
+                    <p class="label" style="text-transform:none;font-weight:400;margin-bottom:12px;">${item.d}</p>
+                    <input type="range" min="0" max="5" id="in-${cat}${idx}" oninput="update()">
+                </div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        // --- APP LOGIC ---
+        function init() {
+            renderSliders('c', 'content-sliders');
+            renderSliders('i', 'interaction-sliders');
+            renderSliders('a', 'access-sliders');
+            renderSidebar();
+            loadTool(tools[0].id);
+        }
+
+        function enterApp() {
+            document.getElementById('landing-page').style.transform = 'translateY(-100%)';
+            setTimeout(() => {
+                document.getElementById('app-container').style.opacity = '1';
+                document.getElementById('app-container').style.transform = 'scale(1)';
+            }, 300);
+        }
+
+        function exitApp() {
+            document.getElementById('app-container').style.opacity = '0';
+            document.getElementById('app-container').style.transform = 'scale(0.98)';
+            document.getElementById('landing-page').style.transform = 'translateY(0)';
+            toggleMenu(false); 
+        }
+
+        function toggleMenu(force) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            const isOpen = sidebar.classList.contains('open');
+            
+            if (force === false || isOpen) {
+                sidebar.classList.remove('open');
+                overlay.style.display = 'none';
+            } else {
+                sidebar.classList.add('open');
+                overlay.style.display = 'block';
+            }
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('tool-list');
+            list.innerHTML = '';
+            tools.forEach(t => {
+                const div = document.createElement('div');
+                div.className = `nav-item ${activeTool.id === t.id ? 'active' : ''}`;
+                div.innerHTML = `<span>${t.name}</span>`;
+                div.onclick = () => { loadTool(t.id); toggleMenu(false); };
+                list.appendChild(div);
+            });
+        }
+
+        function loadTool(id) {
+            activeTool = tools.find(t => t.id === id);
+            renderSidebar();
+            document.getElementById('tool-title-input').value = activeTool.name;
+            document.getElementById('cat-badge').innerText = activeTool.type;
+            document.getElementById('tool-desc-text').innerText = activeTool.desc;
+
+            // Set Slider Values
+            ['c','i','a'].forEach(cat => {
+                activeTool[cat].forEach((val, idx) => {
+                    const el = document.getElementById(`in-${cat}${idx+1}`);
+                    if(el) el.value = val;
+                });
+            });
+            update();
+        }
+
+        function update() {
+            let sums = {c:0, i:0, a:0};
+            ['c','i','a'].forEach(cat => {
+                let vals = [];
+                for(let j=1; j<=5; j++) {
+                    const val = parseInt(document.getElementById(`in-${cat}${j}`).value);
+                    document.getElementById(`val-${cat}${j}`).innerText = val + "/5";
+                    vals.push(val);
+                }
+                sums[cat] = vals.reduce((a,b)=>a+b,0);
+                if(activeTool.id.startsWith('custom')) activeTool[cat] = vals;
+            });
+
+            const total = sums.c + sums.i + sums.a;
+            document.getElementById('total-score').innerText = total;
+
+            // Verdict
+            const v = document.getElementById('verdict');
+            if(total >= 60) { v.innerText = "HIGHLY RECOMMENDED"; v.style.background = "#d1fae5"; v.style.color="#047857"; }
+            else if(total >= 40) { v.innerText = "COMPETENT"; v.style.background = "#fef3c7"; v.style.color="#b45309"; }
+            else { v.innerText = "NOT RECOMMENDED"; v.style.background = "#fee2e2"; v.style.color="#b91c1c"; }
+
+            // Chart
+            const y1 = 100 - (sums.c * 3.2); 
+            const x2 = 100 + (sums.i * 3.0); const y2 = 100 + (sums.i * 2.0); 
+            const x3 = 100 - (sums.a * 3.0); const y3 = 100 + (sums.a * 2.0); 
+            document.getElementById('radar-poly').setAttribute('points', `${100},${y1} ${x2},${y2} ${x3},${y3}`);
+        }
+
+        function createCustom() {
+            const newId = 'custom_' + Date.now();
+            const newTool = { id: newId, name: 'Untitled Tool', type: 'Custom', desc: 'Custom analysis.', c:[0,0,0,0,0], i:[0,0,0,0,0], a:[0,0,0,0,0] };
+            tools.push(newTool);
+            loadTool(newId);
+            document.getElementById('tool-title-input').readOnly = false;
+            document.getElementById('tool-title-input').focus();
+            document.getElementById('tool-title-input').oninput = (e) => { activeTool.name = e.target.value; renderSidebar(); };
+            toggleMenu(false);
+        }
+
+        function openRecommender() { document.getElementById('rec-modal').classList.add('visible'); toggleMenu(false); }
+        function closeRecommender() { document.getElementById('rec-modal').classList.remove('visible'); }
+
+        function runRecommendation() {
+            const subject = document.getElementById('rec-subject').value;
+            const constraint = document.getElementById('rec-constraint').value;
+            let candidates = tools.filter(t => t.tags && t.tags.includes(subject));
+            if(candidates.length === 0) candidates = tools;
+            candidates.sort((a,b) => {
+                const sum = arr => arr.reduce((x,y)=>x+y,0);
+                let sA, sB;
+                if(constraint === 'access') { sA=sum(a.a); sB=sum(b.a); }
+                else if(constraint === 'interaction') { sA=sum(a.i); sB=sum(b.i); }
+                else { sA=sum(a.c); sB=sum(b.c); }
+                return sB - sA;
+            });
+            const winner = candidates[0];
+            document.getElementById('rec-name').innerText = winner.name;
+            document.getElementById('rec-text').innerHTML = `Best for <strong>${subject}</strong> with <strong>${constraint}</strong> constraint.`;
+            document.getElementById('rec-result').style.display = 'block';
+        }
+
+        init();
+    </script>
+</body>
+</html>
